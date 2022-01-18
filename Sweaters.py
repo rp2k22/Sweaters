@@ -15,7 +15,7 @@ dpdr = 2
 
 stOnly = ["CAST ON", "HANG STITCHES OUT OF WORK", "BIND OFF", "-_-", "HANG STITCHES", "PUT STITCHES OUT OF WORK"]
 rOnly = ["|R|", "||"]
-Both = ["/|", "|\\", "/\\", "\\/", "SlvDecError"] # Have yet to remember the distinction between |\\ and ||/ etc.
+Both = ["/|", "|\\", "/\\", "\\/", "SlvDecError "] # Have yet to remember the distinction between |\\ and ||/ etc.
 Marginal = ["INC", "DEC"]
 
 SleeveDec = ["/|", "|\\", "/\\", "\\/"]
@@ -55,7 +55,6 @@ OUT order: [B, F, N, S]
 #Step 1: Geometry
 
 def Step1(Inputs):
-    #Do the unit conversion here!! Everything after this point should use cm
     moduleName = Inputs["Style"]
     Style = importlib.import_module(moduleName)
     
@@ -75,7 +74,6 @@ def Step2(Inputs, S1Out):
             piece2.append(step2)
         S2Out[piece] = piece2
     return S2Out
-
 
 def TranslateS2(step, FabricData):
     global stOnly, rOnly, Both, dpdr
@@ -144,7 +142,6 @@ def TranslateS2(step, FabricData):
         return SleeveDecrease(OUT, dpdr)
     else: return OUT
 
-
 def SleeveDecrease(step, dpdr):
     global Increase, Decrease
     #just don't pass in any compound steps. That's fine.
@@ -192,17 +189,17 @@ def SleeveDecrease(step, dpdr):
     
     #Report out. These should be separate methods but I am already in it.
     for i in range(g1):
-        OUT.append(dStep)
         OUT.append(("||", N1-1))
-    for i in range(g2):
         OUT.append(dStep)
+    for i in range(g2):
         OUT.append(("||", N2-1))
-    OUT.append(("SlvDecError", (sign*stError, rError)))
+        OUT.append(dStep)
+    OUT.append(("SlvDecError ", (sign*stError, rError)))
     
     return OUT
 
 #Step 3: Translate to end-user language (So far just throwing it into a .txt file.)
-
+    
 def Step3(Inputs, S2Out):
     filename = Inputs["Name"]
     file = open(filename + ".txt", 'a')
@@ -239,18 +236,18 @@ def WriteStepAsString(step, stepcount):
     if type(CMD)!=str:
         OUT = ct
         #if we're doing a sleeve decrease row
-        if type(CMD) == tuple and len(CMD[1])==2:
+        if type(CMD) == tuple and len(CMD[1])==2: # 17Jan22 where we have odd and inconsistent doubling of repeats.
             #now we are going to check for multiples.
-            prev = [0]*2
+            prev = [0, 0]
             counter = 1
             prevIndex = 0
             for i in range(len(step)):
                 OUTA = WriteStepAsString(step[i], "SKIP") + ";\n\t"
                 if step[i] in prev:
-                    counter = counter + 1
+                    counter = counter + 0.5
                 else:
                     if counter>1:
-                        OUT = OUT + "REPEAT  "+str(counter)+"  TIMES:"+"\n\t\t"+str(prev[0])+"\n\t\t"+str(prev[1]) + "\n\t" + OUTA
+                        OUT = OUT + "REPEAT  "+str(counter)+"  TIMES TOTAL:"+"\n\t\t"+str(prev[1])+"\n\t\t"+str(prev[0]) + "\n\t" + OUTA
                         prev = [0, step[i]]
                     else:
                         prev[prevIndex] = step[i]
@@ -344,7 +341,7 @@ def PartStitchCount(part):
     return stCt
 
 
-#NOT DONE
+
 def StepStitchCount(step, StOnNeedles):
     global stOnly, rOnly, Marginal   
 
@@ -398,7 +395,7 @@ def StepStitchCount(step, StOnNeedles):
         if CMD == "DEC":
             return [StOnNeedles-PRM,  StOnNeedles-PRM]
 
-    if CMD == "SlvDecError":
+    if CMD == "SlvDecError ":
         # print(StOnNeedles, StOnNeedles+PRM[0])
         return [(StOnNeedles+PRM[0])*PRM[1], StOnNeedles+PRM[0]]
     
@@ -409,66 +406,7 @@ def StepStitchCount(step, StOnNeedles):
 TEST STUFF HERE
 =======================================================
 """
-cm = 2.54
-# Inputs = {
-#                     "Name":"txtTest004", 
-#                     "Style":"std002", 
-#                     "Units":"cm",
-#                     "Measurements":{
-#                         "WaistC":43*cm
-#                         ,"NeckC":21*cm
-#                         ,"ArmL":25*cm
-#                         ,"TotalHt":25*cm
-#                         ,"WristC":7*cm
-#                         ,"ShoulderC":16*cm
-#                         ,"SeamAllowance":0.5*cm
-#                     },
-#                     "FabricData":{
-#                         "stPcm":6.4/cm
-#                         ,"rPcm":8.888889/cm
-#                         ,"stPg":100
-#                         ,"Flavor":"YSG"
-#                         ,"Tension":3
-#                         ,"Fabric":"Stockinette"
-#                     }
-#                   }
-
-## Has FA data !!
-Inputs = {
-            "Name":"Test17Oct2021_FA", 
-            "Style":"std002", 
-            "Units":"cm",
-            "Measurements":{
-                "ChestC":41*cm
-                ,"WaistC":39*cm
-                ,"HipC" :40*cm
-                ,"HWh" :8*cm
-                ,"HCh" :18*cm
-                ,"NeckC":21*cm
-                ,"ArmL":25*cm
-                ,"TotalHt":27*cm
-                ,"WristC":7*cm
-                ,"ShoulderC":16*cm
-                ,"SeamAllowance":0.5*cm
-            },
-            "FabricData":{
-                "stPcm":6.667/cm
-                ,"rPcm":11.43/cm
-                ,"stPg":254.4
-            }
-          }
-
-fish = Step1(Inputs) # Step 1 works!!
-sturgeon = Step2(Inputs, fish)
-
-Step3(Inputs, sturgeon)
-
-#This won't give accurate results yet, but it WILL give formatting info which I need.
-YarnEstimationTool(Inputs, sturgeon)
-
-# squirrel = SleeveDecrease(("/\\", (123, 140)), 2)
-
-
+#Moved inputs to main.py for (my) ease of use
 """
 =======================================================
 END OF TESTING STUFF
